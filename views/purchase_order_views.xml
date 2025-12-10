@@ -12,7 +12,7 @@
                         <span class="o_stat_text">Weighing</span>
                     </div>
                     <div class="o_field_widget o_stat_info" style="margin-top: 5px;">
-                        <span class="o_stat_value" style="font-size: 14px; color: #00aa00;"><field name="total_net_weight"/> KG</span>
+                        <span class="o_stat_value" style="font-size: 14px; color: #00aa00;"><field name="total_net_weight_display"/></span>
                         <span class="o_stat_text" style="font-size: 11px;">Total Received</span>
                     </div>
                 </button>

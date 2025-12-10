@@ -43,7 +43,7 @@ export class WeighingOverviewDashboard extends Component {
                     const ids = await this.orm.call('weighing.overview', 'get_receipts_to_weigh_ids', []);
                     return [['id', 'in', ids]];
                 },
-                context: { 'create': false }
+                context: { 'create': true }
             },
             'pos_to_weigh': {
                 name: 'Purchase Orders to Weigh',
@@ -54,7 +54,7 @@ export class WeighingOverviewDashboard extends Component {
                     const ids = await this.orm.call('weighing.overview', 'get_pos_to_weigh_ids', []);
                     return [['id', 'in', ids]];
                 },
-                context: { 'create': false }
+                context: { 'create': true }
             },
             'in_progress': {
                 name: 'Weighing In Progress',
@@ -223,6 +223,44 @@ export class WeighingOverviewDashboard extends Component {
                 views: [[false, 'list'], [false, 'form']],
                 domain: [],
             },
+            'sales_to_weigh': {
+                name: 'Sales Orders to Weigh',
+                res_model: 'sale.order',
+                view_mode: 'list,form',
+                views: [[false, 'list'], [false, 'form']],
+                domain: async () => {
+                    const ids = await this.orm.call('weighing.overview', 'get_sales_to_weigh_ids', []);
+                    return [['id', 'in', ids]];
+                },
+                context: { 'create': true }
+            },
+            'deliveries_to_weigh': {
+                name: 'Deliveries to Weigh',
+                res_model: 'stock.picking',
+                view_mode: 'list,form',
+                views: [[false, 'list'], [false, 'form']],
+                domain: async () => {
+                    const ids = await this.orm.call('weighing.overview', 'get_deliveries_to_weigh_ids', []);
+                    return [['id', 'in', ids]];
+                },
+                context: { 'create': true }
+            },
+            'new_weighing_sale': {
+                name: 'New Weighing from Sale',
+                res_model: 'truck.weighing',
+                view_mode: 'form',
+                views: [[false, 'form']],
+                target: 'current',
+                context: { 'default_from_sale': true }
+            },
+            'new_weighing_delivery': {
+                name: 'New Weighing from Delivery',
+                res_model: 'truck.weighing',
+                view_mode: 'form',
+                views: [[false, 'form']],
+                target: 'current',
+                context: { 'default_from_delivery': true }
+            },
             'active_trucks': {
                 name: 'Active Trucks',
                 res_model: 'truck.fleet',
@@ -327,6 +365,13 @@ export class WeighingOverviewDashboard extends Component {
 
     async refreshData() {
         await this.loadData();
+    }
+
+    formatWeight(weight) {
+        if (weight > 2000) {
+            return `${(weight / 1000).toFixed(1)} T`;
+        }
+        return `${weight.toLocaleString()} KG`;
     }
 }
 

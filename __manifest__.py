@@ -1,12 +1,12 @@
 {
 'name': 'Scale Integration for Inventory',
-'version': '19.0.1.0.0',
+'version': '19.0.1.0.1',
 'category': 'Inventory/Stock',
 'summary': 'Integrate with external weighbridge scale to capture Gross and Tare weights for incoming shipments.',
 'author': 'Gemy',
 'website': 'https://www.example.com',
 'license': 'LGPL-3',
-'depends': ['stock', 'mail', 'purchase', 'web'],
+'depends': ['stock', 'mail', 'purchase', 'sale', 'web'],
 'data': [
 'security/security.xml',
 'security/ir.model.access.csv',
@@ -14,6 +14,7 @@
 'views/truck_fleet_views.xml',
 'views/res_users_views.xml',
 'views/purchase_order_views.xml',
+'views/sale_order_views.xml',
 'views/stock_picking_views.xml',
 'views/weighing_scale_views.xml',
 'views/product_views.xml',

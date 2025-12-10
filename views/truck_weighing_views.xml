@@ -37,6 +37,18 @@
                                 <span class="o_stat_text">Receipt</span>
                             </div>
                         </button>
+                        <button name="action_view_sale_order" type="object" class="oe_stat_button" icon="fa-shopping-bag"
+                                invisible="not sale_order_id">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Sale Order</span>
+                            </div>
+                        </button>
+                        <button name="action_view_delivery" type="object" class="oe_stat_button" icon="fa-truck"
+                                invisible="not delivery_id">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Delivery</span>
+                            </div>
+                        </button>
                     </div>
                     <div class="oe_title">
                         <h1><field name="name" readonly="1"/></h1>
@@ -54,11 +66,21 @@
                         </group>
                     </group>
                     <group>
-                        <group string="Purchase &amp; Inventory">
+                        <group string="Partner &amp; Operation">
                             <field name="partner_id"/>
+                            <field name="operation_type"/>
+                        </group>
+                    </group>
+                    <group invisible="not operation_type">
+                        <group string="Purchase &amp; Receipts" invisible="operation_type != 'incoming'">
                             <field name="purchase_order_id" domain="[('partner_id', '=', partner_id), ('state', 'in', ['purchase', 'done']), ('order_line.product_id.is_weighable', '=', True)]"/>
                             <field name="purchase_line_id" domain="[('order_id', '=', purchase_order_id), ('product_id.is_weighable', '=', True)]"/>
                             <field name="picking_id" domain="[('partner_id', '=', partner_id), ('picking_type_code', '=', 'incoming'), ('state', 'in', ['draft', 'waiting', 'confirmed', 'assigned']), ('move_ids.product_id.is_weighable', '=', True)]"/>
+                        </group>
+                        <group string="Sales &amp; Deliveries" invisible="operation_type != 'outgoing'">
+                            <field name="sale_order_id" domain="[('partner_id', '=', partner_id), ('state', 'in', ['sale', 'done']), ('order_line.product_id.is_weighable', '=', True)]"/>
+                            <field name="sale_line_id" domain="[('order_id', '=', sale_order_id), ('product_id.is_weighable', '=', True)]"/>
+                            <field name="delivery_id" domain="[('partner_id', '=', partner_id), ('picking_type_code', '=', 'outgoing'), ('state', 'in', ['draft', 'waiting', 'confirmed', 'assigned']), ('move_ids.product_id.is_weighable', '=', True)]"/>
                         </group>
                     </group>
                     <group>
@@ -134,6 +156,7 @@
                 <field name="net_weight"/>
                 <field name="state"/>
                 <field name="weighing_date"/>
+                <field name="operation_type"/>
                 <templates>
                     <t t-name="card">
                         <div class="oe_kanban_global_click" t-attf-style="border-left: 4px solid {{record.state.raw_value == 'done' ? '#28a745' : record.state.raw_value == 'tare' ? '#ffc107' : record.state.raw_value == 'gross' ? '#17a2b8' : '#6c757d'}}; border-radius: 4px;">

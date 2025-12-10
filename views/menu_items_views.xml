@@ -8,8 +8,10 @@
     <menuitem id="menu_truck_weighing_operations" name="Operations" parent="menu_truck_weighing_root" sequence="1"/>
     <menuitem id="menu_receipts_need_weighing" name="Receipts to Weigh" parent="menu_truck_weighing_operations" action="action_receipts_need_weighing" sequence="1"/>
     <menuitem id="menu_pos_need_weighing" name="POs to Weigh" parent="menu_truck_weighing_operations" action="action_pos_need_weighing" sequence="2"/>
-    <menuitem id="menu_truck_weighing_in_progress" name="In Progress" parent="menu_truck_weighing_operations" action="action_truck_weighing_in_progress" sequence="3"/>
-    <menuitem id="menu_truck_weighing_all" name="All Records" parent="menu_truck_weighing_operations" action="action_truck_weighing_all" sequence="4"/>
+    <menuitem id="menu_sales_need_weighing" name="Sales to Weigh" parent="menu_truck_weighing_operations" action="action_sales_need_weighing" sequence="3"/>
+    <menuitem id="menu_deliveries_need_weighing" name="Deliveries to Weigh" parent="menu_truck_weighing_operations" action="action_deliveries_need_weighing" sequence="4"/>
+    <menuitem id="menu_truck_weighing_in_progress" name="In Progress" parent="menu_truck_weighing_operations" action="action_truck_weighing_in_progress" sequence="5"/>
+    <menuitem id="menu_truck_weighing_all" name="All Records" parent="menu_truck_weighing_operations" action="action_truck_weighing_all" sequence="6"/>
     <menuitem id="menu_truck_fleet" name="Truck Fleet" parent="menu_truck_weighing_root" action="action_truck_fleet" sequence="5"/>
 
     <menuitem id="menu_truck_weighing_reports" name="Reports" parent="menu_truck_weighing_root" sequence="8"/>
