@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Sales module does not add weighing button to avoid duplicates -->
+    <!-- Weighing functionality is provided through model inheritance only -->
+</odoo>

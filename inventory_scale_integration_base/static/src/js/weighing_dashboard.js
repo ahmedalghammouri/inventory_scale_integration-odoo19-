@@ -34,17 +34,6 @@ export class WeighingOverviewDashboard extends Component {
 
     async onCardAction(actionName) {
         const actions = {
-            'receipts_to_weigh': {
-                name: 'Receipts to Weigh',
-                res_model: 'stock.picking',
-                view_mode: 'list,form',
-                views: [[false, 'list'], [false, 'form']],
-                domain: async () => {
-                    const ids = await this.orm.call('weighing.overview', 'get_receipts_to_weigh_ids', []);
-                    return [['id', 'in', ids]];
-                },
-                context: { 'create': true }
-            },
 
             'in_progress': {
                 name: 'Weighing In Progress',
@@ -67,57 +56,7 @@ export class WeighingOverviewDashboard extends Component {
                 views: [[false, 'form']],
                 target: 'current',
             },
-            'new_weighing_receipt': {
-                name: 'New Weighing from Receipt',
-                res_model: 'truck.weighing',
-                view_mode: 'form',
-                views: [[false, 'form']],
-                target: 'current',
-                context: { 'default_from_receipt': true }
-            },
-            'deliveries_to_weigh': {
-                name: 'Deliveries to Weigh',
-                res_model: 'stock.picking',
-                view_mode: 'list,form',
-                views: [[false, 'list'], [false, 'form']],
-                domain: async () => {
-                    const ids = await this.orm.call('weighing.overview', 'get_deliveries_to_weigh_ids', []);
-                    return [['id', 'in', ids]];
-                },
-                context: { 'create': true }
-            },
-            'deliveries_urgent': {
-                name: 'Urgent Deliveries to Weigh',
-                res_model: 'stock.picking',
-                view_mode: 'list,form',
-                views: [[false, 'list'], [false, 'form']],
-                domain: [
-                    ['state', 'in', ['assigned', 'confirmed']],
-                    ['picking_type_code', '=', 'outgoing'],
-                    ['move_ids.product_id.is_weighable', '=', true],
-                    ['scheduled_date', '<=', new Date().toISOString().split('T')[0]]
-                ],
-            },
-            'deliveries_by_customer': {
-                name: 'Deliveries to Weigh by Customer',
-                res_model: 'stock.picking',
-                view_mode: 'list,form',
-                views: [[false, 'list'], [false, 'form']],
-                domain: [
-                    ['state', 'in', ['assigned', 'confirmed']],
-                    ['picking_type_code', '=', 'outgoing'],
-                    ['move_ids.product_id.is_weighable', '=', true]
-                ],
-                context: { 'group_by': 'partner_id' }
-            },
-            'new_weighing_delivery': {
-                name: 'New Weighing from Delivery',
-                res_model: 'truck.weighing',
-                view_mode: 'form',
-                views: [[false, 'form']],
-                target: 'current',
-                context: { 'default_from_delivery': true }
-            },
+
 
             'truck_fleet': {
                 name: 'Truck Fleet',
@@ -140,31 +79,7 @@ export class WeighingOverviewDashboard extends Component {
                 views: [[false, 'graph'], [false, 'pivot']],
                 domain: [['state', '=', 'done']],
             },
-            // Receipts filtered actions
-            'receipts_urgent': {
-                name: 'Urgent Receipts to Weigh',
-                res_model: 'stock.picking',
-                view_mode: 'list,form',
-                views: [[false, 'list'], [false, 'form']],
-                domain: [
-                    ['state', 'in', ['assigned', 'confirmed']],
-                    ['picking_type_code', '=', 'incoming'],
-                    ['move_ids.product_id.is_weighable', '=', true],
-                    ['scheduled_date', '<=', new Date().toISOString().split('T')[0]]
-                ],
-            },
-            'receipts_by_vendor': {
-                name: 'Receipts to Weigh by Vendor',
-                res_model: 'stock.picking',
-                view_mode: 'list,form',
-                views: [[false, 'list'], [false, 'form']],
-                domain: [
-                    ['state', 'in', ['assigned', 'confirmed']],
-                    ['picking_type_code', '=', 'incoming'],
-                    ['move_ids.product_id.is_weighable', '=', true]
-                ],
-                context: { 'group_by': 'partner_id' }
-            },
+
 
             // Weighing state filtered actions
             'weighing_draft': {
@@ -267,16 +182,7 @@ export class WeighingOverviewDashboard extends Component {
                 context: { 'group_by': 'truck_id' }
             },
 
-            'truck_receipts': {
-                name: 'Truck-Related Receipts',
-                res_model: 'stock.picking',
-                view_mode: 'list,form',
-                views: [[false, 'list'], [false, 'form']],
-                domain: [
-                    ['picking_type_code', '=', 'incoming'],
-                    ['move_ids.product_id.is_weighable', '=', true]
-                ],
-            },
+
             'truck_efficiency': {
                 name: 'Truck Efficiency Analysis',
                 res_model: 'truck.weighing',

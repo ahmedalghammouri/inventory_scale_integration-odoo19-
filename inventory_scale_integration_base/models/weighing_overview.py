@@ -12,13 +12,6 @@ class WeighingOverview(models.TransientModel):
         today = fields.Date.today()
         week_ago = today - timedelta(days=7)
         
-        # Get IDs for consistent filtering
-        receipts_to_weigh_ids = self.get_receipts_to_weigh_ids()
-        deliveries_to_weigh_ids = self.get_deliveries_to_weigh_ids()
-        
-        receipts_to_weigh = self.env['stock.picking'].browse(receipts_to_weigh_ids)
-        deliveries_to_weigh = self.env['stock.picking'].browse(deliveries_to_weigh_ids)
-        
         # In Progress Weighings
         in_progress = self.env['truck.weighing'].search([
             ('state', 'in', ['draft', 'gross', 'tare'])
@@ -39,12 +32,8 @@ class WeighingOverview(models.TransientModel):
         total_weighings = len(all_records)
         avg_weighings_per_truck = total_weighings / max(len(trucks_with_weighing), 1)
         
-        # Truck-related stock operations
-        truck_receipts = self.env['stock.picking'].search_count([
-            ('state', 'in', ['assigned', 'confirmed', 'done']),
-            ('picking_type_code', '=', 'incoming'),
-            ('move_ids.product_id.is_weighable', '=', True)
-        ])
+        # Basic truck operations
+        truck_receipts = 0
         
         # Weekly truck activity
         weekly_truck_activity = self.env['truck.weighing'].search_count([
@@ -53,18 +42,6 @@ class WeighingOverview(models.TransientModel):
         ])
         
         return {
-            'receipts_to_weigh': {
-                'count': len(receipts_to_weigh),
-                'total_qty': sum(receipts_to_weigh.mapped('move_ids.product_uom_qty')),
-                'urgent_count': len(receipts_to_weigh.filtered(lambda r: r.scheduled_date and r.scheduled_date.date() <= today)),
-                'partners': len(receipts_to_weigh.mapped('partner_id')),
-            },
-            'deliveries_to_weigh': {
-                'count': len(deliveries_to_weigh),
-                'total_qty': sum(deliveries_to_weigh.mapped('move_ids.product_uom_qty')),
-                'urgent_count': len(deliveries_to_weigh.filtered(lambda d: d.scheduled_date and d.scheduled_date.date() <= today)),
-                'partners': len(deliveries_to_weigh.mapped('partner_id')),
-            },
             'in_progress': {
                 'count': len(in_progress),
                 'draft_count': len(in_progress.filtered(lambda r: r.state == 'draft')),
@@ -111,30 +88,3 @@ class WeighingOverview(models.TransientModel):
         
         return round(total_hours / max(count, 1), 1)
     
-    @api.model
-    def get_receipts_to_weigh_ids(self):
-        """Get receipt IDs that need weighing"""
-        all_receipts = self.env['stock.picking'].search([
-            ('state', 'in', ['assigned', 'confirmed']),
-            ('picking_type_code', '=', 'incoming'),
-            ('move_ids.product_id.is_weighable', '=', True)
-        ])
-        # Filter out those with existing weighing records
-        receipts_to_weigh = all_receipts.filtered(lambda r: 
-            not self.env['truck.weighing'].search([('picking_id', '=', r.id)], limit=1)
-        )
-        return receipts_to_weigh.ids
-    
-    @api.model
-    def get_deliveries_to_weigh_ids(self):
-        """Get delivery IDs that need weighing"""
-        all_deliveries = self.env['stock.picking'].search([
-            ('state', 'in', ['assigned', 'confirmed']),
-            ('picking_type_code', '=', 'outgoing'),
-            ('move_ids.product_id.is_weighable', '=', True)
-        ])
-        # Filter out those with existing weighing records
-        deliveries_to_weigh = all_deliveries.filtered(lambda d: 
-            not self.env['truck.weighing'].search([('picking_id', '=', d.id)], limit=1)
-        )
-        return deliveries_to_weigh.ids

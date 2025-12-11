@@ -6,6 +6,49 @@ import { patch } from "@web/core/utils/patch";
 patch(WeighingOverviewDashboard.prototype, {
     async onCardAction(actionName) {
         const purchaseActions = {
+            'receipts_to_weigh': {
+                name: 'Receipts to Weigh',
+                res_model: 'stock.picking',
+                view_mode: 'list,form',
+                views: [[false, 'list'], [false, 'form']],
+                domain: async () => {
+                    const ids = await this.orm.call('weighing.overview', 'get_receipts_to_weigh_ids', []);
+                    return [['id', 'in', ids]];
+                },
+                context: { 'create': true }
+            },
+            'receipts_urgent': {
+                name: 'Urgent Receipts to Weigh',
+                res_model: 'stock.picking',
+                view_mode: 'list,form',
+                views: [[false, 'list'], [false, 'form']],
+                domain: [
+                    ['state', 'in', ['assigned', 'confirmed']],
+                    ['picking_type_code', '=', 'incoming'],
+                    ['move_ids.product_id.is_weighable', '=', true],
+                    ['scheduled_date', '<=', new Date().toISOString().split('T')[0]]
+                ],
+            },
+            'receipts_by_vendor': {
+                name: 'Receipts to Weigh by Vendor',
+                res_model: 'stock.picking',
+                view_mode: 'list,form',
+                views: [[false, 'list'], [false, 'form']],
+                domain: [
+                    ['state', 'in', ['assigned', 'confirmed']],
+                    ['picking_type_code', '=', 'incoming'],
+                    ['move_ids.product_id.is_weighable', '=', true]
+                ],
+                context: { 'group_by': 'partner_id' }
+            },
+            'new_weighing_receipt': {
+                name: 'New Weighing from Receipt',
+                res_model: 'truck.weighing',
+                view_mode: 'form',
+                views: [[false, 'form']],
+                target: 'current',
+                context: { 'default_from_receipt': true }
+            },
             'pos_to_weigh': {
                 name: 'Purchase Orders to Weigh',
                 res_model: 'purchase.order',

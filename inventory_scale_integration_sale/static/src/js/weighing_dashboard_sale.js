@@ -6,6 +6,49 @@ import { patch } from "@web/core/utils/patch";
 patch(WeighingOverviewDashboard.prototype, {
     async onCardAction(actionName) {
         const salesActions = {
+            'deliveries_to_weigh': {
+                name: 'Deliveries to Weigh',
+                res_model: 'stock.picking',
+                view_mode: 'list,form',
+                views: [[false, 'list'], [false, 'form']],
+                domain: async () => {
+                    const ids = await this.orm.call('weighing.overview', 'get_deliveries_to_weigh_ids', []);
+                    return [['id', 'in', ids]];
+                },
+                context: { 'create': true }
+            },
+            'deliveries_urgent': {
+                name: 'Urgent Deliveries to Weigh',
+                res_model: 'stock.picking',
+                view_mode: 'list,form',
+                views: [[false, 'list'], [false, 'form']],
+                domain: [
+                    ['state', 'in', ['assigned', 'confirmed']],
+                    ['picking_type_code', '=', 'outgoing'],
+                    ['move_ids.product_id.is_weighable', '=', true],
+                    ['scheduled_date', '<=', new Date().toISOString().split('T')[0]]
+                ],
+            },
+            'deliveries_by_customer': {
+                name: 'Deliveries to Weigh by Customer',
+                res_model: 'stock.picking',
+                view_mode: 'list,form',
+                views: [[false, 'list'], [false, 'form']],
+                domain: [
+                    ['state', 'in', ['assigned', 'confirmed']],
+                    ['picking_type_code', '=', 'outgoing'],
+                    ['move_ids.product_id.is_weighable', '=', true]
+                ],
+                context: { 'group_by': 'partner_id' }
+            },
+            'new_weighing_delivery': {
+                name: 'New Weighing from Delivery',
+                res_model: 'truck.weighing',
+                view_mode: 'form',
+                views: [[false, 'form']],
+                target: 'current',
+                context: { 'default_from_delivery': true }
+            },
             'sales_to_weigh': {
                 name: 'Sales Orders to Weigh',
                 res_model: 'sale.order',

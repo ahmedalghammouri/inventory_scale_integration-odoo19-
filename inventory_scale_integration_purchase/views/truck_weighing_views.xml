@@ -6,7 +6,21 @@
         <field name="model">truck.weighing</field>
         <field name="inherit_id" ref="inventory_scale_integration_base.truck_weighing_view_form"/>
         <field name="arch" type="xml">
+            <!-- Replace Complete Weighing button with Update Inventory when stock operation is linked -->
+            <xpath expr="//button[@name='action_complete_weighing']" position="attributes">
+                <attribute name="invisible">picking_id</attribute>
+            </xpath>
+            <xpath expr="//button[@name='action_complete_weighing']" position="after">
+                <button name="action_update_inventory" string="Update Inventory" type="object"
+                        invisible="state != 'tare' or not picking_id" class="oe_highlight"/>
+            </xpath>
             <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_picking" type="object" class="oe_stat_button" icon="fa-truck"
+                        invisible="not picking_id">
+                    <div class="o_stat_info">
+                        <span class="o_stat_text">Stock Operation</span>
+                    </div>
+                </button>
                 <button name="action_view_purchase_order" type="object" class="oe_stat_button" icon="fa-shopping-cart"
                         invisible="not purchase_order_id">
                     <div class="o_stat_info">
@@ -14,12 +28,27 @@
                     </div>
                 </button>
             </xpath>
-            <field name="operation_type" position="after">
+            <xpath expr="//group[field[@name='product_id']]" position="before">
+                <group>
+                    <group string="Partner &amp; Operation">
+                        <field name="partner_id"/>
+                        <field name="operation_type" readonly="picking_id"/>
+                    </group>
+                </group>
+                <group>
+                    <group string="Stock Operation">
+                        <field name="picking_id" domain="[('partner_id', '=', partner_id), ('state', 'in', ['draft', 'waiting', 'confirmed', 'assigned']), ('move_ids.product_id.is_weighable', '=', True)]"/>
+                    </group>
+                </group>
                 <group string="Purchase &amp; Receipts" invisible="operation_type != 'incoming'">
                     <field name="purchase_order_id" domain="[('partner_id', '=', partner_id), ('state', 'in', ['purchase', 'done']), ('order_line.product_id.is_weighable', '=', True)]"/>
                     <field name="purchase_line_id" domain="[('order_id', '=', purchase_order_id), ('product_id.is_weighable', '=', True)]"/>
                 </group>
-            </field>
+            </xpath>
+
+            <xpath expr="//field[@name='product_id']" position="after">
+                <field name="location_dest_id"/>
+            </xpath>
         </field>
     </record>
 </odoo>

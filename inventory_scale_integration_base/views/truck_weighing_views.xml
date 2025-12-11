@@ -11,18 +11,12 @@
                             invisible="state != 'draft'" class="oe_highlight"/>
                     <button name="action_set_tare_from_live" string="Set Tare Weight" type="object"
                             invisible="state != 'gross'" class="oe_highlight"/>
-                    <button name="action_update_inventory" string="Update Inventory" type="object"
+                    <button name="action_complete_weighing" string="Complete Weighing" type="object"
                             invisible="state != 'tare'" class="oe_highlight"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,gross,tare,done"/>
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
-                        <button name="action_view_picking" type="object" class="oe_stat_button" icon="fa-truck"
-                                invisible="not picking_id">
-                            <div class="o_stat_info">
-                                <span class="o_stat_text">Stock Operation</span>
-                            </div>
-                        </button>
                     </div>
                     <div class="oe_title">
                         <h1><field name="name" readonly="1"/></h1>
@@ -40,20 +34,8 @@
                         </group>
                     </group>
                     <group>
-                        <group string="Partner &amp; Operation">
-                            <field name="partner_id"/>
-                            <field name="operation_type"/>
-                        </group>
-                    </group>
-                    <group>
-                        <group string="Stock Operation">
-                            <field name="picking_id" domain="[('partner_id', '=', partner_id), ('state', 'in', ['draft', 'waiting', 'confirmed', 'assigned']), ('move_ids.product_id.is_weighable', '=', True)]"/>
-                        </group>
-                    </group>
-                    <group>
                         <group string="Product Details">
-                            <field name="product_id" domain="[('type', '=', 'product'), ('is_weighable', '=', True)]"/>
-                            <field name="location_dest_id"/>
+                            <field name="product_id" domain="[('is_weighable', '=', True)]"/>
                         </group>
                         <group string="Timestamps">
                             <field name="gross_date" readonly="1"/>
@@ -95,13 +77,11 @@
                 <field name="weighing_date" widget="datetime"/>
                 <field name="truck_plate" string="Plate #"/>
                 <field name="driver_name" optional="hide"/>
-                <field name="partner_id"/>
                 <field name="product_id"/>
 
                 <field name="gross_weight" optional="show"/>
                 <field name="tare_weight" optional="show"/>
                 <field name="net_weight" sum="Total Net Weight" decoration-bf="1"/>
-                <field name="picking_id" optional="hide"/>
                 <field name="scale_id" optional="hide"/>
                 <field name="state" decoration-success="state == 'done'" decoration-info="state == 'gross'" decoration-warning="state == 'tare'" widget="badge"/>
             </list>
@@ -116,14 +96,10 @@
                 <field name="name"/>
                 <field name="truck_plate"/>
                 <field name="driver_name"/>
-                <field name="partner_id"/>
                 <field name="product_id"/>
-
-                <field name="picking_id"/>
                 <field name="net_weight"/>
                 <field name="state"/>
                 <field name="weighing_date"/>
-                <field name="operation_type"/>
                 <templates>
                     <t t-name="card">
                         <div class="oe_kanban_global_click" t-attf-style="border-left: 4px solid {{record.state.raw_value == 'done' ? '#28a745' : record.state.raw_value == 'tare' ? '#ffc107' : record.state.raw_value == 'gross' ? '#17a2b8' : '#6c757d'}}; border-radius: 4px;">
@@ -138,10 +114,7 @@
                             </div>
                             <div class="o_kanban_record_body">
                                 <div class="mb-1"><i class="fa fa-user" title="Driver"/> <field name="driver_name"/></div>
-                                <div class="mb-1"><i class="fa fa-building" title="Vendor"/> <field name="partner_id"/></div>
                                 <div class="mb-1"><i class="fa fa-cube" title="Product"/> <field name="product_id"/></div>
-
-                                <div class="mb-2" t-if="record.picking_id.raw_value"><i class="fa fa-truck" title="Receipt"/> <field name="picking_id"/></div>
                                 <div class="p-2 text-center" t-attf-style="background-color: {{record.state.raw_value == 'done' ? '#d4edda' : record.state.raw_value == 'tare' ? '#fff3cd' : record.state.raw_value == 'gross' ? '#d1ecf1' : '#e2e3e5'}}; border-radius: 4px;">
                                     <strong t-attf-style="font-size: 20px; color: {{record.state.raw_value == 'done' ? '#155724' : record.state.raw_value == 'tare' ? '#856404' : record.state.raw_value == 'gross' ? '#0c5460' : '#383d41'}};"><field name="net_weight"/> KG</strong>
                                 </div>
@@ -187,7 +160,7 @@
         <field name="arch" type="xml">
             <pivot string="Weighing Analysis" sample="1">
                 <field name="state" type="row"/>
-                <field name="partner_id" type="row"/>
+                <field name="product_id" type="row"/>
                 <field name="net_weight" type="measure"/>
             </pivot>
         </field>
@@ -201,8 +174,6 @@
                 <field name="name" filter_domain="['|', ('name', 'ilike', self), ('truck_plate', 'ilike', self)]" string="Reference/Plate"/>
                 <field name="truck_plate" filter_domain="[('truck_plate', 'ilike', self)]"/>
                 <field name="driver_name"/>
-                <field name="partner_id"/>
-
                 <field name="product_id"/>
                 <field name="scale_id"/>
                 <filter string="In Progress" name="in_progress" domain="[('state', 'in', ['draft', 'gross', 'tare'])]"/>
@@ -214,7 +185,6 @@
                 <field name="state"/>
                 <group>
                     <filter string="Status" name="group_state" domain="" context="{'group_by':'state'}"/>
-                    <filter string="Vendor" name="group_vendor" domain="" context="{'group_by':'partner_id'}"/>
                     <filter string="Product" name="group_product" domain="" context="{'group_by':'product_id'}"/>
                     <filter string="Scale" name="group_scale" domain="" context="{'group_by':'scale_id'}"/>
                     <filter string="Truck" name="group_truck" domain="" context="{'group_by':'truck_id'}"/>
@@ -253,15 +223,6 @@
             </p>
         </field>
     </record>
-
-    <record id="action_receipts_need_weighing" model="ir.actions.act_window">
-        <field name="name">Receipts Need Weighing</field>
-        <field name="res_model">stock.picking</field>
-        <field name="view_mode">list,form</field>
-        <field name="domain">[('picking_type_code', '=', 'incoming'), ('state', 'in', ['assigned', 'confirmed']), ('move_ids.product_id.is_weighable', '=', True)]</field>
-        <field name="context">{}</field>
-    </record>
-
 
 
     <record id="action_truck_weighing_in_progress" model="ir.actions.act_window">

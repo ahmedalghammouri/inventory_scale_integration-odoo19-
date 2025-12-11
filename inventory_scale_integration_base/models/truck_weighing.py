@@ -25,15 +25,7 @@ class TruckWeighing(models.Model):
     driver_name = fields.Char(string='Driver Name', related='truck_id.driver_name', readonly=False)
     
     # Basic Links
-    partner_id = fields.Many2one('res.partner', string='Partner', tracking=True)
-    picking_id = fields.Many2one('stock.picking', string='Stock Operation', ondelete='restrict', tracking=True)
     product_id = fields.Many2one('product.product', string='Product', required=True, tracking=True)
-    location_dest_id = fields.Many2one('stock.location', string='Destination Location')
-    
-    operation_type = fields.Selection([
-        ('incoming', 'Incoming'),
-        ('outgoing', 'Outgoing')
-    ], string='Operation Type', compute='_compute_operation_type', store=True, readonly=False, tracking=True)
 
     # Weight Fields
     live_weight = fields.Float(string='Live Weight (KG)', readonly=True)
@@ -70,15 +62,7 @@ class TruckWeighing(models.Model):
             'total_weight_today': sum(self.search([('state', '=', 'done'), ('weighing_date', '>=', today)]).mapped('net_weight')),
         }
 
-    @api.depends('picking_id')
-    def _compute_operation_type(self):
-        """ Determine operation type based on linked documents """
-        for record in self:
-            if not record.operation_type:
-                if record.picking_id and record.picking_id.picking_type_code == 'incoming':
-                    record.operation_type = 'incoming'
-                elif record.picking_id and record.picking_id.picking_type_code == 'outgoing':
-                    record.operation_type = 'outgoing'
+
     
     @api.depends('gross_weight', 'tare_weight')
     def _compute_net_weight(self):
@@ -93,12 +77,12 @@ class TruckWeighing(models.Model):
     def _compute_user_scales(self):
         """ Get scales assigned to current user """
         for record in self:
-            user = record.create_uid or self.env.user
-            record.user_scale_ids = user.assigned_scale_ids
+            # In base module, show all enabled scales
+            record.user_scale_ids = self.env['weighing.scale'].search([('is_enabled', '=', True)])
     
     @api.onchange('user_scale_ids')
     def _onchange_user_scale_ids(self):
-        """ Auto-select first assigned scale if no scale selected """
+        """ Auto-select first available scale if no scale selected """
         if self.user_scale_ids and not self.scale_id:
             self.scale_id = self.user_scale_ids[0]
 
@@ -107,12 +91,11 @@ class TruckWeighing(models.Model):
         for vals in vals_list:
             if vals.get('name', _('New')) == _('New'):
                 vals['name'] = self.env['ir.sequence'].next_by_code('truck.weighing.sequence') or _('New')
-            # Set default scale from user if not specified
+            # Set default scale if not specified
             if not vals.get('scale_id'):
-                if self.env.user.default_scale_id:
-                    vals['scale_id'] = self.env.user.default_scale_id.id
-                elif self.env.user.assigned_scale_ids:
-                    vals['scale_id'] = self.env.user.assigned_scale_ids[0].id
+                enabled_scales = self.env['weighing.scale'].search([('is_enabled', '=', True)], limit=1)
+                if enabled_scales:
+                    vals['scale_id'] = enabled_scales[0].id
         return super(TruckWeighing, self).create(vals_list)
 
     def action_fetch_live_weight(self):
@@ -152,88 +135,21 @@ class TruckWeighing(models.Model):
         else:
             raise UserError(_("Please fetch live weight first."))
 
-    def action_update_inventory(self):
-        """ Update quantity in stock operation """
+    def action_complete_weighing(self):
+        """ Complete weighing process """
         self.ensure_one()
         
         if self.state != 'tare' or self.net_weight <= 0.0:
-            raise UserError(_("Cannot update inventory. Net weight must be positive."))
+            raise UserError(_("Cannot complete weighing. Net weight must be positive."))
 
         if not self.product_id:
             raise UserError(_("Product is required."))
         
-        if self.picking_id:
-            self._update_picking_quantity()
-            self.message_post(body=_("Stock operation updated: %s KG of %s") % (self.net_weight, self.product_id.name))
-        else:
-            raise UserError(_("Please select a stock operation first."))
-        
+        self.message_post(body=_("Weighing completed: %s KG of %s") % (self.net_weight, self.product_id.name))
         self.state = 'done'
-    
-    def _update_picking_quantity(self):
-        """ Update quantity in stock picking """
-        move = self.picking_id.move_ids.filtered(lambda m: m.product_id == self.product_id)
-        
-        if not move:
-            raise UserError(_("Product %s not found in stock operation.") % self.product_id.name)
-        
-        # Ensure picking is in correct state
-        if self.picking_id.state == 'draft':
-            self.picking_id.action_confirm()
-        
-        if self.picking_id.state in ['confirmed', 'waiting']:
-            self.picking_id.action_assign()
-        
-        # Update quantity in move lines
-        if move[0].move_line_ids:
-            for ml in move[0].move_line_ids:
-                ml.quantity = self.net_weight
-        else:
-            # Create move line if doesn't exist
-            self.env['stock.move.line'].create({
-                'move_id': move[0].id,
-                'product_id': self.product_id.id,
-                'product_uom_id': self.product_id.uom_id.id,
-                'location_id': self.picking_id.location_id.id,
-                'location_dest_id': self.picking_id.location_dest_id.id,
-                'quantity': self.net_weight,
-                'picking_id': self.picking_id.id,
-            })
-        
-        # Log the update
-        demand_qty = move[0].product_uom_qty
-        if self.net_weight > demand_qty:
-            status = _("Over-delivery: +%s KG") % (self.net_weight - demand_qty)
-        elif self.net_weight < demand_qty:
-            status = _("Under-delivery: -%s KG") % (demand_qty - self.net_weight)
-        else:
-            status = _("Exact delivery")
-        
-        self.picking_id.message_post(
-            body=_("Weighed: %s KG of %s (Demand: %s KG) - %s (from weighing %s)") % 
-            (self.net_weight, self.product_id.name, demand_qty, status, self.name)
-        )
-    
-    @api.onchange('picking_id')
-    def _onchange_picking_id(self):
-        if self.picking_id:
-            self.partner_id = self.picking_id.partner_id
-            self.location_dest_id = self.picking_id.location_dest_id
-            weighable_moves = self.picking_id.move_ids.filtered(lambda m: m.product_id.is_weighable)
-            if weighable_moves:
-                self.product_id = weighable_moves[0].product_id
     
     @api.onchange('truck_id')
     def _onchange_truck_id(self):
         if self.truck_id:
             self.driver_name = self.truck_id.driver_name
     
-    def action_view_picking(self):
-        self.ensure_one()
-        return {
-            'name': 'Stock Operation',
-            'type': 'ir.actions.act_window',
-            'res_model': 'stock.picking',
-            'view_mode': 'form',
-            'res_id': self.picking_id.id,
-        }

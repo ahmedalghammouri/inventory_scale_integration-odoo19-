@@ -1,15 +1,16 @@
 {
 'name': 'Scale Integration - Sales',
 'version': '19.0.1.0.0',
-'category': 'Inventory/Sales',
+'category': 'Operations/Weighing',
 'summary': 'Sales Order integration for weighing scale operations',
 'author': 'Gemy',
 'website': 'https://www.example.com',
 'license': 'LGPL-3',
-'depends': ['inventory_scale_integration_base', 'sale'],
+'depends': ['inventory_scale_integration_base', 'inventory_scale_integration_purchase', 'sale', 'stock'],
 'data': [
 'views/truck_weighing_views.xml',
 'views/sale_order_views.xml',
+'views/stock_picking_views.xml',
 'views/menu_items_views.xml',
 ],
 'assets': {
@@ -18,6 +19,6 @@
 'inventory_scale_integration_sale/static/src/xml/weighing_dashboard_sale.xml',
 ],
 },
-'auto_install': True,
+'auto_install': False,
 'installable': True,
 }
