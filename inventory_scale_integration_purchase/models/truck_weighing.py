@@ -18,6 +18,16 @@ class TruckWeighing(models.Model):
     # Purchase Links
     purchase_order_id = fields.Many2one('purchase.order', string='Purchase Order')
     purchase_line_id = fields.Many2one('purchase.order.line', string='Purchase Order Line')
+    
+    # Readonly flags
+    is_po_readonly = fields.Boolean(compute='_compute_readonly_flags')
+    is_product_readonly = fields.Boolean(compute='_compute_readonly_flags')
+    
+    @api.depends('picking_id', 'purchase_order_id')
+    def _compute_readonly_flags(self):
+        for record in self:
+            record.is_po_readonly = bool(record.picking_id)
+            record.is_product_readonly = bool(record.picking_id or record.purchase_order_id)
 
     @api.depends('picking_id')
     def _compute_operation_type(self):
@@ -92,7 +102,7 @@ class TruckWeighing(models.Model):
         )
     
     @api.onchange('picking_id')
-    def _onchange_picking_id(self):
+    def _onchange_picking_id_(self):
         if self.picking_id:
             self.partner_id = self.picking_id.partner_id
             self.location_dest_id = self.picking_id.location_dest_id
@@ -100,11 +110,11 @@ class TruckWeighing(models.Model):
             if weighable_moves:
                 move = weighable_moves[0]
                 self.product_id = move.product_id
-                # Auto-populate purchase order from stock move
+                # Auto-populate sale order from stock move
                 if hasattr(move, 'purchase_line_id') and move.purchase_line_id:
                     self.purchase_line_id = move.purchase_line_id
                     self.purchase_order_id = move.purchase_line_id.order_id
-                # If no direct purchase line, try to find from origin
+                # If no direct sale line, try to find from origin
                 elif self.picking_id.origin:
                     po = self.env['purchase.order'].search([('name', '=', self.picking_id.origin)], limit=1)
                     if po:

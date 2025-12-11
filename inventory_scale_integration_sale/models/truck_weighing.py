@@ -5,9 +5,17 @@ from odoo.exceptions import UserError
 class TruckWeighing(models.Model):
     _inherit = 'truck.weighing'
 
-    # Sales Links (stock fields are inherited from purchase module)
+    # Sales Links (stock fields inherited from purchase module)
     sale_order_id = fields.Many2one('sale.order', string='Sale Order', ondelete='restrict', tracking=True)
     sale_line_id = fields.Many2one('sale.order.line', string='Sale Order Line', ondelete='restrict')
+    
+    # Readonly flags for sales
+    is_so_readonly = fields.Boolean(compute='_compute_so_readonly_flags')
+    
+    @api.depends('picking_id', 'sale_order_id')
+    def _compute_so_readonly_flags(self):
+        for record in self:
+            record.is_so_readonly = bool(record.picking_id)
 
 
 
@@ -82,7 +90,7 @@ class TruckWeighing(models.Model):
             if weighable_moves:
                 move = weighable_moves[0]
                 self.product_id = move.product_id
-                # Auto-populate sale order from stock move
+                # Auto-populate sale order from stock move  
                 if hasattr(move, 'sale_line_id') and move.sale_line_id:
                     self.sale_line_id = move.sale_line_id
                     self.sale_order_id = move.sale_line_id.order_id

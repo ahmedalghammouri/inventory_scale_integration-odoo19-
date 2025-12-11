@@ -6,7 +6,7 @@
 'author': 'Gemy',
 'website': 'https://www.example.com',
 'license': 'LGPL-3',
-'depends': ['inventory_scale_integration_base', 'inventory_scale_integration_purchase', 'sale', 'stock'],
+'depends': ['inventory_scale_integration_base', 'sale', 'stock'],
 'data': [
 'views/truck_weighing_views.xml',
 'views/sale_order_views.xml',
