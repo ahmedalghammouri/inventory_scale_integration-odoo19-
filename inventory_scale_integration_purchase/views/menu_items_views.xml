@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Purchase-specific menus -->
+    <menuitem id="menu_pos_need_weighing" name="POs to Weigh" parent="inventory_scale_integration_base.menu_truck_weighing_operations" action="action_pos_need_weighing" sequence="2"/>
+</odoo>

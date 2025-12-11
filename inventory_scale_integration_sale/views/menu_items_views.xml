@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Sales-specific menus -->
+    <menuitem id="menu_sales_need_weighing" name="Sales to Weigh" parent="inventory_scale_integration_base.menu_truck_weighing_operations" action="action_sales_need_weighing" sequence="3"/>
+    <menuitem id="menu_deliveries_need_weighing" name="Deliveries to Weigh" parent="inventory_scale_integration_base.menu_truck_weighing_operations" action="action_deliveries_need_weighing" sequence="4"/>
+</odoo>

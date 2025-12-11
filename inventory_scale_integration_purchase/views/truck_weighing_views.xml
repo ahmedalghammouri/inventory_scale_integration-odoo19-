@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Extend truck weighing form with purchase fields -->
+    <record id="truck_weighing_view_form_purchase" model="ir.ui.view">
+        <field name="name">truck.weighing.form.purchase</field>
+        <field name="model">truck.weighing</field>
+        <field name="inherit_id" ref="inventory_scale_integration_base.truck_weighing_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_purchase_order" type="object" class="oe_stat_button" icon="fa-shopping-cart"
+                        invisible="not purchase_order_id">
+                    <div class="o_stat_info">
+                        <span class="o_stat_text">Purchase Order</span>
+                    </div>
+                </button>
+            </xpath>
+            <field name="operation_type" position="after">
+                <group string="Purchase &amp; Receipts" invisible="operation_type != 'incoming'">
+                    <field name="purchase_order_id" domain="[('partner_id', '=', partner_id), ('state', 'in', ['purchase', 'done']), ('order_line.product_id.is_weighable', '=', True)]"/>
+                    <field name="purchase_line_id" domain="[('order_id', '=', purchase_order_id), ('product_id.is_weighable', '=', True)]"/>
+                </group>
+            </field>
+        </field>
+    </record>
+</odoo>
