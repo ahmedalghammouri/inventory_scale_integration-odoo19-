@@ -38,6 +38,17 @@ class TruckWeighing(models.Model):
     gross_date = fields.Datetime(string='Gross Weight Date', readonly=True)
     tare_date = fields.Datetime(string='Tare Weight Date', readonly=True)
 
+    # Stock Links
+    partner_id = fields.Many2one('res.partner', string='Partner', tracking=True)
+    picking_id = fields.Many2one('stock.picking', string='Stock Operation', ondelete='restrict', tracking=True)
+    location_dest_id = fields.Many2one('stock.location', string='Destination Location')
+    
+    operation_type = fields.Selection([
+        ('incoming', 'Incoming'),
+        ('outgoing', 'Outgoing')
+    ], string='Operation Type', tracking=True)
+
+
     # State
     state = fields.Selection([
         ('draft', 'Draft'),
@@ -49,7 +60,7 @@ class TruckWeighing(models.Model):
     
     # Notes
     notes = fields.Text(string='Notes')
-    
+                    
     @api.model
     def get_dashboard_data(self):
         """ Get statistics for dashboard """
@@ -91,11 +102,18 @@ class TruckWeighing(models.Model):
         for vals in vals_list:
             if vals.get('name', _('New')) == _('New'):
                 vals['name'] = self.env['ir.sequence'].next_by_code('truck.weighing.sequence') or _('New')
-            # Set default scale if not specified
             if not vals.get('scale_id'):
                 enabled_scales = self.env['weighing.scale'].search([('is_enabled', '=', True)], limit=1)
                 if enabled_scales:
                     vals['scale_id'] = enabled_scales[0].id
+            if vals.get('picking_id'):
+                picking = self.env['stock.picking'].browse(vals['picking_id'])
+                if not vals.get('operation_type'):
+                    vals['operation_type'] = 'incoming' if picking.picking_type_code == 'incoming' else 'outgoing'
+                if not vals.get('product_id'):
+                    weighable_moves = picking.move_ids.filtered(lambda m: m.product_id.is_weighable)
+                    if weighable_moves:
+                        vals['product_id'] = weighable_moves[0].product_id.id
         return super(TruckWeighing, self).create(vals_list)
 
     def action_fetch_live_weight(self):
@@ -147,7 +165,96 @@ class TruckWeighing(models.Model):
         
         self.message_post(body=_("Weighing completed: %s KG of %s") % (self.net_weight, self.product_id.name))
         self.state = 'done'
+
+    def action_update_inventory(self):
+        """ Update quantity in stock operation """
+        self.ensure_one()
+        
+        if self.state != 'tare' or self.net_weight <= 0.0:
+            raise UserError(_("Cannot update inventory. Net weight must be positive."))
+
+        if not self.product_id:
+            raise UserError(_("Product is required."))
+        
+        if self.picking_id:
+            self._update_picking_quantity()
+            self.message_post(body=_("Stock operation updated: %s KG of %s") % (self.net_weight, self.product_id.name))
+        else:
+            raise UserError(_("Please select a stock operation first."))
+        
+        self.state = 'done'
     
+    def _update_picking_quantity(self):
+        """ Update quantity in stock picking """
+        move = self.picking_id.move_ids.filtered(lambda m: m.product_id == self.product_id)
+        
+        if not move:
+            raise UserError(_("Product %s not found in stock operation.") % self.product_id.name)
+        
+        # Ensure picking is in correct state
+        if self.picking_id.state == 'draft':
+            self.picking_id.action_confirm()
+        
+        if self.picking_id.state in ['confirmed', 'waiting']:
+            self.picking_id.action_assign()
+        
+        # Update quantity in move lines
+        if move[0].move_line_ids:
+            for ml in move[0].move_line_ids:
+                ml.quantity = self.net_weight
+        else:
+            # Create move line if doesn't exist
+            self.env['stock.move.line'].create({
+                'move_id': move[0].id,
+                'product_id': self.product_id.id,
+                'product_uom_id': self.product_id.uom_id.id,
+                'location_id': self.picking_id.location_id.id,
+                'location_dest_id': self.picking_id.location_dest_id.id,
+                'quantity': self.net_weight,
+                'picking_id': self.picking_id.id,
+            })
+        
+        # Log the update
+        demand_qty = move[0].product_uom_qty
+        if self.net_weight > demand_qty:
+            status = _("Over-delivery: +%s KG") % (self.net_weight - demand_qty)
+        elif self.net_weight < demand_qty:
+            status = _("Under-delivery: -%s KG") % (demand_qty - self.net_weight)
+        else:
+            status = _("Exact delivery")
+        
+        self.picking_id.message_post(
+            body=_("Weighed: %s KG of %s (Demand: %s KG) - %s (from weighing %s)") % 
+            (self.net_weight, self.product_id.name, demand_qty, status, self.name)
+        )
+
+    def action_view_picking(self):
+        self.ensure_one()
+        return {
+            'name': 'Stock Operation',
+            'type': 'ir.actions.act_window',
+            'res_model': 'stock.picking',
+            'view_mode': 'form',
+            'res_id': self.picking_id.id,
+        }
+    
+    def write(self, vals):
+        if vals.get('picking_id'):
+            picking = self.env['stock.picking'].browse(vals['picking_id'])
+            if not vals.get('operation_type'):
+                for record in self:
+                    if not record.operation_type:
+                        vals['operation_type'] = 'incoming' if picking.picking_type_code == 'incoming' else 'outgoing'
+                        break
+            if not vals.get('product_id'):
+                for record in self:
+                    if not record.product_id:
+                        weighable_moves = picking.move_ids.filtered(lambda m: m.product_id.is_weighable)
+                        if weighable_moves:
+                            vals['product_id'] = weighable_moves[0].product_id.id
+                        break
+        return super(TruckWeighing, self).write(vals)
+
     @api.onchange('truck_id')
     def _onchange_truck_id(self):
         if self.truck_id:

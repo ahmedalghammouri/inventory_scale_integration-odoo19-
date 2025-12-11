@@ -1,28 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
-        <!-- Standalone view: inherit from base when purchase module not installed -->
-        <record id="truck_weighing_view_form_sale_standalone" model="ir.ui.view">
-            <field name="name">truck.weighing.form.sale.standalone</field>
+        <record id="truck_weighing_view_form_sale" model="ir.ui.view">
+            <field name="name">truck.weighing.form.sale</field>
             <field name="model">truck.weighing</field>
             <field name="inherit_id" ref="inventory_scale_integration_base.truck_weighing_view_form"/>
-            <field name="active" eval="False"/>
             <field name="arch" type="xml">
-                <!-- Replace Complete Weighing button with Update Inventory when stock operation is linked -->
-                <xpath expr="//button[@name='action_complete_weighing']" position="attributes">
-                    <attribute name="invisible">picking_id</attribute>
-                </xpath>
-                <xpath expr="//button[@name='action_complete_weighing']" position="after">
-                    <button name="action_update_inventory" string="Update Inventory" type="object"
-                            invisible="state != 'tare' or not picking_id" class="oe_highlight"/>
-                </xpath>
                 <xpath expr="//div[@name='button_box']" position="inside">
-                    <button name="action_view_picking" type="object" class="oe_stat_button" icon="fa-truck"
-                            invisible="not picking_id">
-                        <div class="o_stat_info">
-                            <span class="o_stat_text">Stock Operation</span>
-                        </div>
-                    </button>
                     <button name="action_view_sale_order" type="object" class="oe_stat_button" icon="fa-shopping-bag"
                             invisible="not sale_order_id">
                         <div class="o_stat_info">
@@ -30,47 +14,7 @@
                         </div>
                     </button>
                 </xpath>
-                <xpath expr="//group[field[@name='product_id']]" position="before">
-                    <group>
-                        <group string="Partner &amp; Operation">
-                            <field name="partner_id"/>
-                            <field name="operation_type" readonly="picking_id"/>
-                        </group>
-                    </group>
-                    <group>
-                        <group string="Stock Operation">
-                            <field name="picking_id" domain="[('partner_id', '=', partner_id), ('state', 'in', ['draft', 'waiting', 'confirmed', 'assigned']), ('move_ids.product_id.is_weighable', '=', True)]"/>
-                        </group>
-                    </group>
-                    <group string="Sales &amp; Deliveries" invisible="operation_type != 'outgoing'">
-                        <field name="sale_order_id" domain="[('partner_id', '=', partner_id), ('state', 'in', ['sale', 'done']), ('order_line.product_id.is_weighable', '=', True)]"/>
-                        <field name="sale_line_id" domain="[('order_id', '=', sale_order_id), ('product_id.is_weighable', '=', True)]"/>
-                    </group>
-                </xpath>
-                <xpath expr="//field[@name='product_id']" position="after">
-                    <field name="location_dest_id"/>
-                </xpath>
-            </field>
-        </record>
-        
-        <!-- Extension view: inherit from purchase when both modules installed -->
-        <record id="truck_weighing_view_form_sale_extension" model="ir.ui.view">
-            <field name="name">truck.weighing.form.sale.extension</field>
-            <field name="model">truck.weighing</field>
-            <field name="inherit_id" ref="inventory_scale_integration_purchase.truck_weighing_view_form_purchase"/>
-            <field name="active" eval="True"/>
-            <field name="arch" type="xml">
-                <!-- Add Sale Order button -->
-                <xpath expr="//button[@name='action_view_purchase_order']" position="after">
-                    <button name="action_view_sale_order" type="object" class="oe_stat_button" icon="fa-shopping-bag"
-                            invisible="not sale_order_id">
-                        <div class="o_stat_info">
-                            <span class="o_stat_text">Sale Order</span>
-                        </div>
-                    </button>
-                </xpath>
-                <!-- Add Sales fields after Purchase group -->
-                <xpath expr="//field[@name='purchase_line_id']/.." position="after">
+                <xpath expr="//group[field[@name='product_id']]" position="after">
                     <group string="Sales &amp; Deliveries" invisible="operation_type != 'outgoing'">
                         <field name="sale_order_id" domain="[('partner_id', '=', partner_id), ('state', 'in', ['sale', 'done']), ('order_line.product_id.is_weighable', '=', True)]" readonly="is_so_readonly"/>
                         <field name="sale_line_id" domain="[('order_id', '=', sale_order_id), ('product_id.is_weighable', '=', True)]" readonly="is_so_readonly"/>

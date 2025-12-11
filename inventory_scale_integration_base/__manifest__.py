@@ -6,7 +6,7 @@
 'author': 'Gemy',
 'website': 'https://www.example.com',
 'license': 'LGPL-3',
-'depends': ['base', 'product', 'mail', 'web'],
+'depends': ['base', 'product', 'mail', 'web','stock'],
 'data': [
 'data/sequences.xml',
 'security/security.xml',
